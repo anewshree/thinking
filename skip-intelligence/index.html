@@ -1,434 +1,716 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Skip Intelligence · Two Product Architectures</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skip Intelligence · Anushree Jagdish's Thinking</title>
+  <meta name="description" content="Skip Intelligence: the same idea, two companies, two completely different stories. How Spotify and Apple would each build the same wellness feature, and what the implementation reveals.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/Anushree Jagdishax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  .si-wrapper {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 0 16px 40px;
-  }
+    :root {
+      --text-primary: #111111;
+      --text-secondary: #555555;
+      --text-tertiary: #999999;
+      --border: #e8e8e8;
+      --bg: #ffffff;
+      --bg-soft: #f8f8f6;
+      --accent: #111111;
+    }
 
-  /* Header */
-  .si-header {
-    padding: 32px 0 24px;
-    border-bottom: 1px solid #e8e8e8;
-    margin-bottom: 24px;
-  }
-  .si-eyebrow {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    color: #999;
-    margin-bottom: 8px;
-  }
-  .si-title {
-    font-size: 26px;
-    font-weight: 700;
-    color: #111;
-    letter-spacing: -.5px;
-    line-height: 1.2;
-    margin-bottom: 8px;
-  }
-  .si-subtitle {
-    font-size: 15px;
-    color: #666;
-    line-height: 1.6;
-  }
+    html { font-size: 18px; scroll-behavior: smooth; }
 
-  /* Tab bar */
-  .si-tabs {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 24px;
-    flex-wrap: wrap;
-  }
-  .si-tab {
-    flex: 1;
-    min-width: 120px;
-    padding: 12px 8px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #666;
-    text-align: center;
-    cursor: pointer;
-    border-radius: 10px;
-    border: 1.5px solid #e8e8e8;
-    background: #fff;
-    transition: all .18s;
-    letter-spacing: -.1px;
-  }
-  .si-tab:hover { border-color: #ccc; color: #333; }
-  .si-tab.sp-active { background: #121212; color: #1DB954; border-color: #121212; }
-  .si-tab.ap-active { background: #f2f2f7; color: #0a84ff; border-color: #c7c7cc; }
-  .si-tab.cmp-active { background: #111; color: #fff; border-color: #111; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      line-height: 1.75;
+      -webkit-font-smoothing: antialiased;
+    }
 
-  .si-panel { display: none; }
-  .si-panel.active { display: block; }
+    /* ── SITE HEADER ── */
+    .site-header {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      background: rgba(255,255,255,.96);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+    }
+    .site-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -.2px;
+      text-decoration: none;
+    }
+    .site-nav {
+      display: flex;
+      gap: 24px;
+    }
+    .site-nav a {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color .15s;
+    }
+    .site-nav a:hover { color: var(--text-primary); }
 
-  /* ─── SPOTIFY PANEL ─── */
-  .sp-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
-  @media (max-width: 580px) { .sp-wrap { grid-template-columns: 1fr; } }
+    /* ── ARTICLE WRAPPER ── */
+    .article-wrap {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
 
-  .sp-phone {
-    background: #121212;
-    border-radius: 20px;
-    overflow: hidden;
-    border: 1px solid #282828;
-  }
-  .sp-top { background: #181818; padding: 18px 16px 14px; }
-  .sp-top-title { font-size: 17px; font-weight: 700; color: #fff; letter-spacing: -.3px; }
-  .sp-top-sub { font-size: 11px; color: #6a6a6a; margin-top: 2px; }
-  .sp-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-top: 12px; }
-  .sp-stat { background: #282828; border-radius: 8px; padding: 10px 6px; text-align: center; }
-  .sp-stat-n { font-size: 18px; font-weight: 700; color: #1DB954; display: block; }
-  .sp-stat-l { font-size: 10px; color: #6a6a6a; margin-top: 2px; }
-  .sp-chart-area { padding: 12px 14px 0; height: 90px; position: relative; }
-  .sp-section { padding: 12px 14px; }
-  .sp-sec-label { font-size: 10px; color: #6a6a6a; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
-  .sp-track { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: .5px solid #1e1e1e; }
-  .sp-track:last-child { border-bottom: none; }
-  .sp-art { width: 34px; height: 34px; border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; color: #fff; text-align: center; line-height: 1.2; }
-  .sp-tinfo { flex: 1; min-width: 0; }
-  .sp-tname { font-size: 13px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sp-tartist { font-size: 11px; color: #6a6a6a; }
-  .sp-skips { font-size: 11px; color: #1DB954; font-weight: 600; white-space: nowrap; }
-  .sp-signal-box {
-    background: #282828; border-radius: 10px; padding: 12px;
-    border: 1px dashed #444; margin: 0 14px 14px;
-  }
-  .sp-signal-label { font-size: 10px; color: #6a6a6a; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 5px; }
-  .sp-signal-text { font-size: 12px; color: #fff; line-height: 1.5; margin-bottom: 8px; }
-  .sp-signal-cta { font-size: 10px; color: #1DB954; letter-spacing: .05em; }
+    /* ── ARTICLE HEADER ── */
+    .article-header {
+      padding: 60px 0 48px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 48px;
+    }
+    .article-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .article-eyebrow::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+      max-width: 48px;
+    }
+    .article-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 2.4rem;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -.02em;
+      color: var(--text-primary);
+      margin-bottom: 20px;
+    }
+    .article-deck {
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 28px;
+      font-weight: 300;
+    }
+    .article-meta {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .meta-item {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-weight: 500;
+    }
+    .meta-dot {
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+    .meta-tag {
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
 
-  /* Seam */
-  .seam-block {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 0;
-  }
-  .seam-line { width: 1px; height: 18px; background: #ddd; }
-  .seam-pill {
-    background: #fff8e1; color: #b45309; font-size: 12px; font-weight: 600;
-    padding: 5px 16px; border-radius: 50px; border: 1px solid #fbbf24;
-    text-align: center;
-  }
-  .seam-caption {
-    font-size: 12px; color: #888; text-align: center;
-    max-width: 280px; line-height: 1.6;
-  }
+    /* ── ARTICLE BODY ── */
+    .article-body { font-size: 1rem; font-weight: 400; }
 
-  /* Calm */
-  .calm-phone {
-    background: #f0f7f9;
-    border-radius: 20px;
-    overflow: hidden;
-    border: 1px solid #cde;
-  }
-  .calm-header-bar { background: #4a90c4; padding: 14px 16px 10px; }
-  .calm-header-title { font-size: 17px; font-weight: 700; color: #fff; letter-spacing: -.3px; }
-  .calm-header-sub { font-size: 11px; color: rgba(255,255,255,.75); margin-top: 2px; }
-  .calm-notif {
-    background: #fff; border-radius: 12px; margin: 12px 12px 0;
-    padding: 12px 14px; border: 1px solid #cde;
-  }
-  .calm-notif-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-  .calm-notif-icon { width: 22px; height: 22px; border-radius: 6px; background: #4a90c4; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .calm-notif-icon svg { width: 13px; height: 13px; fill: #fff; }
-  .calm-notif-app { font-size: 11px; font-weight: 700; color: #4a90c4; }
-  .calm-notif-time { font-size: 10px; color: #aaa; margin-left: auto; }
-  .calm-notif-title { font-size: 13px; font-weight: 700; color: #1a1a2e; margin-bottom: 2px; }
-  .calm-notif-body { font-size: 12px; color: #6b7280; line-height: 1.5; }
-  .calm-body { padding: 12px 14px; }
-  .calm-body-title { font-size: 16px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; letter-spacing: -.2px; }
-  .calm-body-sub { font-size: 12px; color: #6b7280; margin-bottom: 12px; line-height: 1.5; }
-  .calm-session {
-    background: #fff; border-radius: 10px; padding: 12px;
-    margin-bottom: 8px; border: 1px solid #cde;
-  }
-  .calm-ses-label { font-size: 10px; color: #4a90c4; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 5px; }
-  .calm-ses-title { font-size: 14px; font-weight: 600; color: #1a1a2e; margin-bottom: 2px; }
-  .calm-ses-meta { font-size: 11px; color: #9ca3af; }
-  .calm-ses-bar { height: 3px; background: #e5f0f6; border-radius: 2px; margin-top: 10px; }
-  .calm-btn {
-    width: 100%; background: #4a90c4; border: none; border-radius: 10px;
-    padding: 12px; font-size: 14px; font-weight: 700; color: #fff;
-    cursor: pointer; margin-top: 4px; letter-spacing: -.1px;
-  }
-  .calm-btn:hover { background: #3a7db0; }
-  .calm-footer { font-size: 11px; color: #9ca3af; text-align: center; padding: 8px 14px 14px; line-height: 1.55; }
+    .article-body p {
+      margin-bottom: 28px;
+      color: var(--text-primary);
+      line-height: 1.82;
+    }
 
-  /* ─── APPLE PANEL ─── */
-  .ap-phone {
-    background: #f2f2f7;
-    border-radius: 20px;
-    overflow: hidden;
-    border: 1px solid #c7c7cc;
-    max-width: 360px;
-    margin: 0 auto;
-    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-  }
-  .ap-nav { padding: 16px 18px 8px; }
-  .ap-nav-title { font-size: 17px; font-weight: 700; color: #000; letter-spacing: -.3px; }
-  .ap-nav-sub { font-size: 12px; color: #8e8e93; margin-top: 1px; }
-  .ap-section-label {
-    font-size: 12px; font-weight: 600; color: #8e8e93;
-    letter-spacing: .05em; text-transform: uppercase; padding: 10px 18px 4px;
-  }
-  .ap-card { background: #fff; border-radius: 12px; margin: 0 14px 10px; padding: 14px; }
-  .ap-card-hed { font-size: 20px; font-weight: 700; color: #000; letter-spacing: -.4px; margin-bottom: 3px; }
-  .ap-card-sub { font-size: 13px; color: #8e8e93; line-height: 1.5; margin-bottom: 12px; }
-  .ap-signal { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: .5px solid #e5e5ea; }
-  .ap-signal:last-child { border-bottom: none; }
-  .ap-sig-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-  .ap-sig-label { flex: 1; font-size: 13px; color: #000; font-weight: 500; }
-  .ap-sig-bar-w { width: 70px; }
-  .ap-sig-bar { height: 4px; background: #e5e5ea; border-radius: 2px; overflow: hidden; }
-  .ap-sig-fill { height: 100%; border-radius: 2px; }
-  .ap-sig-val { font-size: 12px; color: #8e8e93; width: 55px; text-align: right; }
-  .ap-chart-area { height: 80px; position: relative; margin-bottom: 4px; }
-  .ap-chart-note { font-size: 11px; color: #8e8e93; margin-top: 4px; font-style: italic; }
-  .ap-mindful-card { background: #fff; border-radius: 12px; margin: 0 14px 10px; padding: 14px; display: flex; gap: 12px; align-items: flex-start; }
-  .ap-m-icon { width: 38px; height: 38px; border-radius: 10px; background: #30d158; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-  .ap-m-icon svg { width: 20px; height: 20px; fill: #fff; }
-  .ap-m-title { font-size: 14px; font-weight: 700; color: #000; margin-bottom: 3px; letter-spacing: -.2px; }
-  .ap-m-sub { font-size: 12px; color: #8e8e93; line-height: 1.5; margin-bottom: 9px; }
-  .ap-m-btn { background: #30d158; border: none; border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 700; color: #fff; cursor: pointer; }
-  .ap-privacy { background: #fff; border-radius: 12px; margin: 0 14px 16px; padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; border: .5px solid #e5e5ea; }
-  .ap-priv-icon { width: 26px; height: 26px; border-radius: 7px; background: #0a84ff; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-  .ap-priv-icon svg { width: 14px; height: 14px; fill: #fff; }
-  .ap-priv-text { font-size: 11px; color: #3c3c43; line-height: 1.6; }
-  .ap-priv-bold { font-weight: 700; color: #000; }
+    .article-body p.lead {
+      font-size: 1.1rem;
+      font-weight: 300;
+      color: var(--text-secondary);
+      line-height: 1.75;
+    }
 
-  /* ─── COMPARE PANEL ─── */
-  .cmp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-  @media (max-width: 480px) { .cmp-grid { grid-template-columns: 1fr; } }
-  .cmp-col { background: #fff; border-radius: 14px; padding: 16px; border: 1px solid #e8e8e8; }
-  .cmp-col-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #f0f0f0; }
-  .cmp-item { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; border-bottom: 1px solid #f5f5f5; font-size: 13px; color: #555; line-height: 1.5; }
-  .cmp-item:last-child { border-bottom: none; }
-  .cmp-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
-  .verdict-box {
-    background: #f9f9f9; border-radius: 14px; padding: 18px 20px;
-    border-left: 4px solid #0a84ff; font-size: 14px; color: #444; line-height: 1.75;
-  }
-  .verdict-box strong { color: #111; font-weight: 700; }
-</style>
+    .article-body h2 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: -.02em;
+      color: var(--text-primary);
+      margin: 52px 0 16px;
+      line-height: 1.25;
+    }
+
+    .article-body h2::before {
+      display: block;
+      content: '';
+      width: 32px;
+      height: 2px;
+      background: var(--text-primary);
+      margin-bottom: 20px;
+    }
+
+    .article-body blockquote {
+      border-left: 3px solid var(--text-primary);
+      padding: 4px 0 4px 24px;
+      margin: 36px 0;
+      font-size: 1.05rem;
+      font-style: italic;
+      color: var(--text-secondary);
+      line-height: 1.75;
+    }
+
+    .principle-box {
+      background: var(--bg-soft);
+      border-radius: 8px;
+      padding: 32px 36px;
+      margin: 52px 0 0;
+      border: 1px solid var(--border);
+    }
+    .principle-box .principle-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 12px;
+    }
+    .principle-box p {
+      font-size: 1.05rem;
+      font-style: italic;
+      color: var(--text-primary);
+      margin-bottom: 0 !important;
+      line-height: 1.75;
+      font-weight: 400;
+    }
+
+    /* ── MOCKUP EMBED BLOCK ── */
+    .mockup-block {
+      margin: 52px -24px;
+      background: #f2f2f0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 32px 24px;
+    }
+    .mockup-block-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    .mockup-block-caption {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      text-align: center;
+      margin-bottom: 24px;
+      line-height: 1.55;
+    }
+
+    /* ── FOOTER ── */
+    .site-footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 24px;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .footer-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .footer-label {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    .footer-text {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      max-width: 320px;
+    }
+    .footer-next {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      text-align: right;
+    }
+    .footer-next a {
+      color: var(--text-primary);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .footer-next a:hover { text-decoration: underline; }
+    .footer-bottom {
+      margin-top: 36px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-tertiary);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* ── MOCKUP INTERNAL STYLES ── */
+    .si-wrapper { font-family: 'Inter', -apple-system, sans-serif; }
+
+    .si-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .si-tab {
+      flex: 1;
+      min-width: 110px;
+      padding: 11px 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #666;
+      text-align: center;
+      cursor: pointer;
+      border-radius: 10px;
+      border: 1.5px solid #e0e0e0;
+      background: #fff;
+      transition: all .18s;
+      letter-spacing: -.1px;
+    }
+    .si-tab:hover { border-color: #bbb; color: #333; }
+    .si-tab.sp-active { background: #121212; color: #1DB954; border-color: #121212; }
+    .si-tab.ap-active { background: #f2f2f7; color: #0a84ff; border-color: #c7c7cc; }
+    .si-tab.cmp-active { background: #111; color: #fff; border-color: #111; }
+
+    .si-panel { display: none; }
+    .si-panel.active { display: block; }
+
+    /* Spotify phone */
+    .sp-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 580px) { .sp-wrap { grid-template-columns: 1fr; } }
+
+    .sp-phone { background: #121212; border-radius: 20px; overflow: hidden; border: 1px solid #282828; }
+    .sp-top { background: #181818; padding: 18px 16px 14px; }
+    .sp-top-title { font-size: 17px; font-weight: 700; color: #fff; letter-spacing: -.3px; }
+    .sp-top-sub { font-size: 11px; color: #6a6a6a; margin-top: 2px; }
+    .sp-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-top: 12px; }
+    .sp-stat { background: #282828; border-radius: 8px; padding: 10px 6px; text-align: center; }
+    .sp-stat-n { font-size: 18px; font-weight: 700; color: #1DB954; display: block; }
+    .sp-stat-l { font-size: 10px; color: #6a6a6a; margin-top: 2px; }
+    .sp-chart-area { padding: 12px 14px 0; height: 88px; position: relative; }
+    .sp-section { padding: 12px 14px; }
+    .sp-sec-label { font-size: 10px; color: #6a6a6a; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
+    .sp-track { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: .5px solid #1e1e1e; }
+    .sp-track:last-child { border-bottom: none; }
+    .sp-art { width: 34px; height: 34px; border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; color: #fff; text-align: center; line-height: 1.2; }
+    .sp-tinfo { flex: 1; min-width: 0; }
+    .sp-tname { font-size: 13px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sp-tartist { font-size: 11px; color: #6a6a6a; }
+    .sp-skips { font-size: 11px; color: #1DB954; font-weight: 600; white-space: nowrap; }
+    .sp-signal-box { background: #282828; border-radius: 10px; padding: 12px; border: 1px dashed #444; margin: 0 14px 14px; }
+    .sp-signal-label { font-size: 10px; color: #6a6a6a; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 5px; }
+    .sp-signal-text { font-size: 12px; color: #fff; line-height: 1.5; margin-bottom: 8px; }
+    .sp-signal-cta { font-size: 10px; color: #1DB954; letter-spacing: .05em; }
+
+    /* Seam */
+    .seam-block { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 0; }
+    .seam-line { width: 1px; height: 18px; background: #ccc; }
+    .seam-pill { background: #fff8e1; color: #b45309; font-size: 12px; font-weight: 600; padding: 5px 16px; border-radius: 50px; border: 1px solid #fbbf24; text-align: center; }
+    .seam-caption { font-size: 12px; color: #888; text-align: center; max-width: 280px; line-height: 1.6; }
+
+    /* Calm */
+    .calm-phone { background: #f0f7f9; border-radius: 20px; overflow: hidden; border: 1px solid #cde; }
+    .calm-header-bar { background: #4a90c4; padding: 14px 16px 10px; }
+    .calm-header-title { font-size: 17px; font-weight: 700; color: #fff; letter-spacing: -.3px; }
+    .calm-header-sub { font-size: 11px; color: rgba(255,255,255,.75); margin-top: 2px; }
+    .calm-notif { background: #fff; border-radius: 12px; margin: 12px 12px 0; padding: 12px 14px; border: 1px solid #cde; }
+    .calm-notif-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .calm-notif-icon { width: 22px; height: 22px; border-radius: 6px; background: #4a90c4; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .calm-notif-icon svg { width: 13px; height: 13px; fill: #fff; }
+    .calm-notif-app { font-size: 11px; font-weight: 700; color: #4a90c4; }
+    .calm-notif-time { font-size: 10px; color: #aaa; margin-left: auto; }
+    .calm-notif-title { font-size: 13px; font-weight: 700; color: #1a1a2e; margin-bottom: 2px; }
+    .calm-notif-body { font-size: 12px; color: #6b7280; line-height: 1.5; }
+    .calm-body { padding: 12px 14px; }
+    .calm-body-title { font-size: 16px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; letter-spacing: -.2px; }
+    .calm-body-sub { font-size: 12px; color: #6b7280; margin-bottom: 12px; line-height: 1.5; }
+    .calm-session { background: #fff; border-radius: 10px; padding: 12px; margin-bottom: 8px; border: 1px solid #cde; }
+    .calm-ses-label { font-size: 10px; color: #4a90c4; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 5px; }
+    .calm-ses-title { font-size: 14px; font-weight: 600; color: #1a1a2e; margin-bottom: 2px; }
+    .calm-ses-meta { font-size: 11px; color: #9ca3af; }
+    .calm-ses-bar { height: 3px; background: #e5f0f6; border-radius: 2px; margin-top: 10px; }
+    .calm-btn { width: 100%; background: #4a90c4; border: none; border-radius: 10px; padding: 12px; font-size: 14px; font-weight: 700; color: #fff; cursor: pointer; }
+    .calm-btn:hover { background: #3a7db0; }
+    .calm-footer { font-size: 11px; color: #9ca3af; text-align: center; padding: 8px 14px 14px; line-height: 1.55; }
+
+    /* Apple */
+    .ap-phone { background: #f2f2f7; border-radius: 20px; overflow: hidden; border: 1px solid #c7c7cc; max-width: 360px; margin: 0 auto; }
+    .ap-nav { padding: 16px 18px 8px; }
+    .ap-nav-title { font-size: 17px; font-weight: 700; color: #000; letter-spacing: -.3px; }
+    .ap-nav-sub { font-size: 12px; color: #8e8e93; margin-top: 1px; }
+    .ap-sec-label { font-size: 12px; font-weight: 600; color: #8e8e93; letter-spacing: .05em; text-transform: uppercase; padding: 10px 18px 4px; }
+    .ap-card { background: #fff; border-radius: 12px; margin: 0 14px 10px; padding: 14px; }
+    .ap-card-hed { font-size: 20px; font-weight: 700; color: #000; letter-spacing: -.4px; margin-bottom: 3px; }
+    .ap-card-sub { font-size: 13px; color: #8e8e93; line-height: 1.5; margin-bottom: 12px; }
+    .ap-signal { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: .5px solid #e5e5ea; }
+    .ap-signal:last-child { border-bottom: none; }
+    .ap-sig-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .ap-sig-label { flex: 1; font-size: 13px; color: #000; font-weight: 500; }
+    .ap-sig-bar-w { width: 70px; }
+    .ap-sig-bar { height: 4px; background: #e5e5ea; border-radius: 2px; overflow: hidden; }
+    .ap-sig-fill { height: 100%; border-radius: 2px; }
+    .ap-sig-val { font-size: 12px; color: #8e8e93; width: 55px; text-align: right; }
+    .ap-chart-area { height: 80px; position: relative; margin-bottom: 4px; }
+    .ap-chart-note { font-size: 11px; color: #8e8e93; margin-top: 4px; font-style: italic; }
+    .ap-mindful-card { background: #fff; border-radius: 12px; margin: 0 14px 10px; padding: 14px; display: flex; gap: 12px; align-items: flex-start; }
+    .ap-m-icon { width: 38px; height: 38px; border-radius: 10px; background: #30d158; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .ap-m-icon svg { width: 20px; height: 20px; fill: #fff; }
+    .ap-m-title { font-size: 14px; font-weight: 700; color: #000; margin-bottom: 3px; }
+    .ap-m-sub { font-size: 12px; color: #8e8e93; line-height: 1.5; margin-bottom: 9px; }
+    .ap-m-btn { background: #30d158; border: none; border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 700; color: #fff; cursor: pointer; }
+    .ap-privacy { background: #fff; border-radius: 12px; margin: 0 14px 16px; padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; border: .5px solid #e5e5ea; }
+    .ap-priv-icon { width: 26px; height: 26px; border-radius: 7px; background: #0a84ff; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .ap-priv-icon svg { width: 14px; height: 14px; fill: #fff; }
+    .ap-priv-text { font-size: 11px; color: #3c3c43; line-height: 1.6; }
+    .ap-priv-bold { font-weight: 700; color: #000; }
+
+    /* Compare */
+    .cmp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    @media (max-width: 480px) { .cmp-grid { grid-template-columns: 1fr; } }
+    .cmp-col { background: #fff; border-radius: 14px; padding: 16px; border: 1px solid #e8e8e8; }
+    .cmp-col-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #f0f0f0; }
+    .cmp-item { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; border-bottom: 1px solid #f5f5f5; font-size: 13px; color: #555; line-height: 1.5; }
+    .cmp-item:last-child { border-bottom: none; }
+    .cmp-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+    .verdict-box { background: #f9f9f9; border-radius: 14px; padding: 18px 20px; border-left: 4px solid #0a84ff; font-size: 14px; color: #444; line-height: 1.75; }
+    .verdict-box strong { color: #111; font-weight: 700; }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .article-title { font-size: 1.85rem; }
+      .site-nav { display: none; }
+      .mockup-block { margin: 40px -24px; }
+      .footer-row { flex-direction: column; }
+      .footer-next { text-align: left; }
+    }
+  </style>
 </head>
 <body>
-<div class="si-wrapper">
 
-  <div class="si-header">
-    <div class="si-eyebrow">Interactive concept · skip intelligence</div>
-    <div class="si-title">The same idea. Two companies. Two completely different stories.</div>
-    <div class="si-subtitle">Explore how Spotify and Apple would each build skip intelligence — and what the implementation reveals about each company's architecture.</div>
+<!-- SITE HEADER -->
+<header class="site-header">
+  <a href="../" class="site-name">Anushree Jagdish · Thinking</a>
+  <nav class="site-nav">
+    <a href="../">All concepts</a>
+    <a href="https://www.linkedin.com/in/anushreejagdish/" target="_blank">LinkedIn</a>
+  </nav>
+</header>
+
+<!-- ARTICLE -->
+<div class="article-wrap">
+  <header class="article-header">
+    <div class="article-eyebrow">Concept No. 01</div>
+    <h1 class="article-title">Skip Intelligence: The Same Idea. Two Companies. Two Completely Different Stories.</h1>
+    <p class="article-deck">Your music streaming app knows something about your emotional state that no mood questionnaire has ever managed to capture this honestly. The moment your thumb moves before your brain has caught up. Here's what two companies could do with that signal, and what the difference reveals.</p>
+    <div class="article-meta">
+      <span class="meta-item">May 2026</span>
+      <div class="meta-dot"></div>
+      <span class="meta-item">8 min read</span>
+      <div class="meta-dot"></div>
+      <span class="meta-tag">Product</span>
+      <span class="meta-tag">Marketing</span>
+      <span class="meta-tag">Wellness</span>
+    </div>
+  </header>
+
+  <div class="article-body">
+
+    <p class="lead">I've been thinking about a feature that doesn't exist yet. It almost exists, twice, in two completely different ways. The feature is simple to describe. The gap between the two implementations reveals something much bigger about where each company is headed.</p>
+
+    <p>Every skip in the first few seconds is a reflex. Not a preference. Not a curation decision. A reaction. Your nervous system responding before your taste has a chance to explain itself.</p>
+
+    <p>And the pattern of those reactions (which songs, how fast, at what time, across how many in a row) is a more reliable emotional signal than almost anything you'd consciously report. If you're skipping everything in the first 8 seconds across an entire session, you're not being picky about music. You're unsettled. If you're consistently bailing on upbeat, high-energy tracks on Tuesday and Wednesday nights, something's weighing on you that hasn't made it into words yet.</p>
+
+    <p>Skip velocity (how fast you bail, on what kind of songs, at what time of day) is a proxy for mood that's more reliable than anything you'd self-report. Both Spotify and Apple are sitting on this data right now. Neither has shown it back to the person who generated it in any meaningful way.</p>
+
+    <p>But the path each company would have to take to build this feature reveals something much bigger than a product decision.</p>
+
+    <h2>What Spotify already has, and what it would need</h2>
+
+    <p>Spotify partnered with Headspace in 2016 as a combined subscription bundle, with Spotify's own VP confirming at the time that neither service would feature any extended integration. Then Calm joined through Spotify Open Access in 2023, but only as content distribution: Calm meditations available as podcast-style audio inside Spotify. No skip data flows into Calm. No Calm session history influences Spotify's queue. They're neighbours, not collaborators.</p>
+
+    <p>What would it take to actually build this? Spotify would need to design a data bridge: an API that passes skip velocity data to a wellness partner in real time, with user consent, under a shared privacy framework. The partner receives the signal and serves a relevant session. The user is handed off from one app to another, one brand to another, one UX language to another.</p>
+
+    <blockquote>The seam isn't a flaw. It's an honest picture of what a partnership model looks like at the product level. Two brands, two privacy policies, two product teams who need to agree on what the data means and how it moves.</blockquote>
+
+    <p>It's solvable. It could be genuinely good. But it requires negotiation, API design, data agreements, and ongoing maintenance of a relationship between two companies whose incentives aren't perfectly aligned. Spotify wants to keep you in Spotify. Calm wants to keep you in Calm.</p>
+
+    <h2>What Apple already has, and what it would only need to connect</h2>
+
+    <p>Apple Music knows every song you've skipped and when. Apple Watch has been measuring your heart rate variability continuously since Series 4, making it one of the most reliable physiological proxies for stress that wearables can capture. The Health app has a State of Mind log, introduced in iOS 17, where users tag their emotional state and build a longitudinal picture across weeks. And Mindfulness sits natively on your wrist, always one tap away.</p>
+
+    <p>These are four first-party data streams. All on the same device. All under the same privacy framework. None of them currently talking to each other.</p>
+
+    <p>No handoff. No seam. No partnership negotiation. The experience is invisible because the infrastructure is already there. It just hasn't been connected. Apple is the only company in the world that can build this, because Apple Watch and iPhone are the only devices where all three streams live on the same hardware under the same privacy framework.</p>
+
   </div>
 
-  <div class="si-tabs">
-    <div class="si-tab sp-active" onclick="sw('spotify',this,'sp-active')">Spotify + Calm</div>
-    <div class="si-tab" onclick="sw('apple',this,'ap-active')">Apple</div>
-    <div class="si-tab" onclick="sw('compare',this,'cmp-active')">The difference</div>
-  </div>
+  <!-- MOCKUP EMBED -->
+  <div class="mockup-block">
+    <div class="mockup-block-label">Interactive concept</div>
+    <div class="mockup-block-caption">Explore how each company's implementation looks at the product level. The difference is in the detail.</div>
 
-  <!-- SPOTIFY PANEL -->
-  <div class="si-panel active" id="panel-spotify">
-    <div class="sp-wrap">
-      <div>
-        <div class="sp-phone">
-          <div class="sp-top">
-            <div class="sp-top-title">Skip intelligence</div>
-            <div class="sp-top-sub">Apr 14–20 · restless week detected</div>
-            <div class="sp-stats">
-              <div class="sp-stat"><span class="sp-stat-n">847</span><div class="sp-stat-l">total skips</div></div>
-              <div class="sp-stat"><span class="sp-stat-n">4.2s</span><div class="sp-stat-l">avg before skip</div></div>
-              <div class="sp-stat"><span class="sp-stat-n">Tue</span><div class="sp-stat-l">peak restless</div></div>
-            </div>
-          </div>
-          <div class="sp-chart-area">
-            <canvas id="sp-chart" role="img" aria-label="Skip frequency by hour, peaking at 8am and midnight">Skip frequency peaks at 8am commute and midnight.</canvas>
-          </div>
-          <div class="sp-section">
-            <div class="sp-sec-label">Most escaped</div>
-            <div class="sp-track"><div class="sp-art" style="background:#6441a5">BL</div><div class="sp-tinfo"><div class="sp-tname">Blinding Lights</div><div class="sp-tartist">The Weeknd</div></div><div class="sp-skips">14 skips</div></div>
-            <div class="sp-track"><div class="sp-art" style="background:#c4302b">HP</div><div class="sp-tinfo"><div class="sp-tname">Happy</div><div class="sp-tartist">Pharrell Williams</div></div><div class="sp-skips">11 skips</div></div>
-            <div class="sp-track"><div class="sp-art" style="background:#1e3a5f">LV</div><div class="sp-tinfo"><div class="sp-tname">Levitating</div><div class="sp-tartist">Dua Lipa</div></div><div class="sp-skips">7 skips</div></div>
-          </div>
-          <div class="sp-signal-box">
-            <div class="sp-signal-label">Skip intelligence · mood signal</div>
-            <div class="sp-signal-text">14 high-energy tracks skipped in 40 minutes. Your listening says you might need a moment.</div>
-            <div class="sp-signal-cta">OPENING IN CALM →</div>
-          </div>
-        </div>
+    <div class="si-wrapper">
+      <div class="si-tabs">
+        <div class="si-tab sp-active" onclick="sw('spotify',this,'sp-active')">Spotify + Calm</div>
+        <div class="si-tab" onclick="sw('apple',this,'ap-active')">Apple</div>
+        <div class="si-tab" onclick="sw('compare',this,'cmp-active')">The difference</div>
       </div>
 
-      <div>
-        <div class="seam-block">
-          <div class="seam-line"></div>
-          <div class="seam-pill">The handoff · two apps, one journey</div>
-          <div class="seam-line"></div>
-          <div class="seam-caption">Spotify detects the signal. Calm receives it. Two brands, two data models, one experience stitched together across a partnership API.</div>
-          <div class="seam-line"></div>
-        </div>
-
-        <div class="calm-phone">
-          <div class="calm-header-bar">
-            <div class="calm-header-title">Calm</div>
-            <div class="calm-header-sub">Referred by Spotify · skip pattern detected</div>
-          </div>
-          <div style="padding:10px 12px 0">
-            <div class="calm-notif">
-              <div class="calm-notif-head">
-                <div class="calm-notif-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg></div>
-                <div class="calm-notif-app">Spotify × Calm</div>
-                <div class="calm-notif-time">now</div>
+      <!-- SPOTIFY -->
+      <div class="si-panel active" id="panel-spotify">
+        <div class="sp-wrap">
+          <div>
+            <div class="sp-phone">
+              <div class="sp-top">
+                <div class="sp-top-title">Skip intelligence</div>
+                <div class="sp-top-sub">Apr 14–20 · restless week detected</div>
+                <div class="sp-stats">
+                  <div class="sp-stat"><span class="sp-stat-n">847</span><div class="sp-stat-l">total skips</div></div>
+                  <div class="sp-stat"><span class="sp-stat-n">4.2s</span><div class="sp-stat-l">avg before skip</div></div>
+                  <div class="sp-stat"><span class="sp-stat-n">Tue</span><div class="sp-stat-l">peak restless</div></div>
+                </div>
               </div>
-              <div class="calm-notif-title">Your music says you need this.</div>
-              <div class="calm-notif-body">14 skips in 40 min. A 3-min session is queued.</div>
+              <div class="sp-chart-area">
+                <canvas id="sp-chart" role="img" aria-label="Bar chart showing skip frequency by hour, peaking at 8am and midnight"></canvas>
+              </div>
+              <div class="sp-section">
+                <div class="sp-sec-label">Most escaped</div>
+                <div class="sp-track"><div class="sp-art" style="background:#6441a5">BL</div><div class="sp-tinfo"><div class="sp-tname">Blinding Lights</div><div class="sp-tartist">The Weeknd</div></div><div class="sp-skips">14 skips</div></div>
+                <div class="sp-track"><div class="sp-art" style="background:#c4302b">HP</div><div class="sp-tinfo"><div class="sp-tname">Happy</div><div class="sp-tartist">Pharrell Williams</div></div><div class="sp-skips">11 skips</div></div>
+                <div class="sp-track"><div class="sp-art" style="background:#1e3a5f">LV</div><div class="sp-tinfo"><div class="sp-tname">Levitating</div><div class="sp-tartist">Dua Lipa</div></div><div class="sp-skips">7 skips</div></div>
+              </div>
+              <div class="sp-signal-box">
+                <div class="sp-signal-label">Skip intelligence · mood signal</div>
+                <div class="sp-signal-text">14 high-energy tracks skipped in 40 minutes. Your listening says you might need a moment.</div>
+                <div class="sp-signal-cta">OPENING IN CALM →</div>
+              </div>
             </div>
           </div>
-          <div class="calm-body">
-            <div class="calm-body-title">Based on your skips</div>
-            <div class="calm-body-sub">Spotify noticed your listening pattern. Here's a session matched to where you are.</div>
-            <div class="calm-session">
-              <div class="calm-ses-label">Recommended · 3 min</div>
-              <div class="calm-ses-title">Unwind from restlessness</div>
-              <div class="calm-ses-meta">Tamara Levitt · Breathwork</div>
-              <div class="calm-ses-bar"></div>
+          <div>
+            <div class="seam-block">
+              <div class="seam-line"></div>
+              <div class="seam-pill">The handoff · two apps, one journey</div>
+              <div class="seam-line"></div>
+              <div class="seam-caption">Spotify detects the signal. Calm receives it. Two brands, two data models, one experience stitched together across a partnership API.</div>
+              <div class="seam-line"></div>
             </div>
-            <div class="calm-session">
-              <div class="calm-ses-label">Also for you · 5 min</div>
-              <div class="calm-ses-title">Settle into the evening</div>
-              <div class="calm-ses-meta">Jay Shetty · Body scan</div>
-              <div class="calm-ses-bar"></div>
+            <div class="calm-phone">
+              <div class="calm-header-bar">
+                <div class="calm-header-title">Calm</div>
+                <div class="calm-header-sub">Referred by Spotify · skip pattern detected</div>
+              </div>
+              <div style="padding:10px 12px 0">
+                <div class="calm-notif">
+                  <div class="calm-notif-head">
+                    <div class="calm-notif-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg></div>
+                    <div class="calm-notif-app">Spotify × Calm</div>
+                    <div class="calm-notif-time">now</div>
+                  </div>
+                  <div class="calm-notif-title">Your music says you need this.</div>
+                  <div class="calm-notif-body">14 skips in 40 min. A 3-min session is queued.</div>
+                </div>
+              </div>
+              <div class="calm-body">
+                <div class="calm-body-title">Based on your skips</div>
+                <div class="calm-body-sub">Spotify noticed your listening pattern. Here's a session matched to where you are.</div>
+                <div class="calm-session">
+                  <div class="calm-ses-label">Recommended · 3 min</div>
+                  <div class="calm-ses-title">Unwind from restlessness</div>
+                  <div class="calm-ses-meta">Tamara Levitt · Breathwork</div>
+                  <div class="calm-ses-bar"></div>
+                </div>
+                <div class="calm-session">
+                  <div class="calm-ses-label">Also for you · 5 min</div>
+                  <div class="calm-ses-title">Settle into the evening</div>
+                  <div class="calm-ses-meta">Jay Shetty · Body scan</div>
+                  <div class="calm-ses-bar"></div>
+                </div>
+                <button class="calm-btn">Start session</button>
+              </div>
+              <div class="calm-footer">Skip data shared with Calm under Spotify's data-sharing agreement. Manage in Settings → Privacy → Partner data.</div>
             </div>
-            <button class="calm-btn">Start session</button>
           </div>
-          <div class="calm-footer">Skip data shared with Calm under Spotify's data-sharing agreement. Manage in Settings → Privacy → Partner data.</div>
         </div>
+      </div>
+
+      <!-- APPLE -->
+      <div class="si-panel" id="panel-apple">
+        <div class="ap-phone">
+          <div class="ap-nav">
+            <div class="ap-nav-title">Mental wellbeing</div>
+            <div class="ap-nav-sub">Listen State · Apr 14–20</div>
+          </div>
+          <div class="ap-sec-label">Three signals · one picture</div>
+          <div class="ap-card">
+            <div class="ap-card-hed">Tuesday at 11pm</div>
+            <div class="ap-card-sub">Your skip velocity, heart rate variability, and mood log pointed the same direction. You were searching for something quieter.</div>
+            <div class="ap-signal"><div class="ap-sig-dot" style="background:#fc3c44"></div><div class="ap-sig-label">Apple Music · skips</div><div class="ap-sig-bar-w"><div class="ap-sig-bar"><div class="ap-sig-fill" style="width:90%;background:#fc3c44"></div></div></div><div class="ap-sig-val">14 in 9 min</div></div>
+            <div class="ap-signal"><div class="ap-sig-dot" style="background:#0a84ff"></div><div class="ap-sig-label">Apple Watch · HRV</div><div class="ap-sig-bar-w"><div class="ap-sig-bar"><div class="ap-sig-fill" style="width:28%;background:#0a84ff"></div></div></div><div class="ap-sig-val">−18ms baseline</div></div>
+            <div class="ap-signal" style="border-bottom:none"><div class="ap-sig-dot" style="background:#5e5ce6"></div><div class="ap-sig-label">Health · mood log</div><div class="ap-sig-bar-w"><div class="ap-sig-bar"><div class="ap-sig-fill" style="width:35%;background:#5e5ce6"></div></div></div><div class="ap-sig-val">Slightly low</div></div>
+          </div>
+          <div class="ap-sec-label">Skip pattern vs HRV</div>
+          <div class="ap-card">
+            <div class="ap-chart-area"><canvas id="ap-chart" role="img" aria-label="Line chart showing skip velocity and HRV moving inversely across the week"></canvas></div>
+            <div class="ap-chart-note">When skips rise, HRV falls. Your thumb and your body agree.</div>
+          </div>
+          <div class="ap-sec-label">What your Listen State recommends</div>
+          <div class="ap-mindful-card">
+            <div class="ap-m-icon"><svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 008 20c9 0 11.4-12.76 11.4-12.76L17 8z"/></svg></div>
+            <div>
+              <div class="ap-m-title">Mindfulness is ready</div>
+              <div class="ap-m-sub">Your Watch noticed the same moment your music did. A 2-min Reflect session is queued. No app switch needed.</div>
+              <button class="ap-m-btn">Start Reflect</button>
+            </div>
+          </div>
+          <div class="ap-privacy">
+            <div class="ap-priv-icon"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div>
+            <div class="ap-priv-text"><span class="ap-priv-bold">Processed on device. No handoff.</span> Apple Music, Watch, and Health stay in one ecosystem. No partnership API. No data crosses company lines. No seam.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMPARE -->
+      <div class="si-panel" id="panel-compare">
+        <div class="cmp-grid">
+          <div class="cmp-col">
+            <div class="cmp-col-title" style="color:#1DB954">Spotify + Calm</div>
+            <div class="cmp-item"><div class="cmp-dot" style="background:#fc3c44"></div>Skip data detected inside Spotify</div>
+            <div class="cmp-item"><div class="cmp-dot" style="background:#fc3c44"></div>Partnership API passes signal to Calm</div>
+            <div class="cmp-item"><div class="cmp-dot" style="background:#fc3c44"></div>User leaves Spotify, enters Calm</div>
+            <div class="cmp-item"><div class="cmp-dot" style="background:#fc3c44"></div>Skip data only, no body signals</div>
+            <div class="cmp-item"><div class="cmp-dot" style="background:#fc3c44"></div>Two privacy policies, one experience</div>
+            <div class="cmp-item"><div class="cmp-dot" style="background:#1DB954"></div>Works across all devices and platforms</div>
+          </div>
+          <div class="cmp-col">
+            <div class="cmp-col-title" style="color:#0a84ff">Apple Listen State</div>
+            <div class="cmp-item"><div class="cmp-dot" style="background:#0a84ff"></div>Skip data from Apple Music</div>
+            <div class="cmp-item"><div class="cmp-dot" style="background:#0a84ff"></div>HRV from Apple Watch</div>
+            <div class="cmp-item"><div class="cmp-dot" style="background:#0a84ff"></div>Mood log from Health</div>
+            <div class="cmp-item"><div class="cmp-dot" style="background:#0a84ff"></div>All three triangulated natively</div>
+            <div class="cmp-item"><div class="cmp-dot" style="background:#0a84ff"></div>One privacy policy, processed on device</div>
+            <div class="cmp-item"><div class="cmp-dot" style="background:#fc3c44"></div>Requires iPhone + Watch ecosystem</div>
+          </div>
+        </div>
+        <div class="verdict-box"><strong>The seam is not a flaw. It's a strategic reality.</strong> Spotify's partnership model can reach a good experience. It requires negotiation, API design, privacy agreements, and two UX languages side by side. Apple's path requires one product decision. The idea is identical. The infrastructure underneath is not.</div>
       </div>
     </div>
   </div>
 
-  <!-- APPLE PANEL -->
-  <div class="si-panel" id="panel-apple">
-    <div class="ap-phone">
-      <div class="ap-nav">
-        <div class="ap-nav-title">Mental wellbeing</div>
-        <div class="ap-nav-sub">Listen State · Apr 14–20</div>
-      </div>
-      <div class="ap-section-label">Three signals · one picture</div>
-      <div class="ap-card">
-        <div class="ap-card-hed">Tuesday at 11pm</div>
-        <div class="ap-card-sub">Your skip velocity, heart rate variability, and mood log pointed the same direction. You were searching for something quieter.</div>
-        <div class="ap-signal">
-          <div class="ap-sig-dot" style="background:#fc3c44"></div>
-          <div class="ap-sig-label">Apple Music · skips</div>
-          <div class="ap-sig-bar-w"><div class="ap-sig-bar"><div class="ap-sig-fill" style="width:90%;background:#fc3c44"></div></div></div>
-          <div class="ap-sig-val">14 in 9 min</div>
-        </div>
-        <div class="ap-signal">
-          <div class="ap-sig-dot" style="background:#0a84ff"></div>
-          <div class="ap-sig-label">Apple Watch · HRV</div>
-          <div class="ap-sig-bar-w"><div class="ap-sig-bar"><div class="ap-sig-fill" style="width:28%;background:#0a84ff"></div></div></div>
-          <div class="ap-sig-val">−18ms baseline</div>
-        </div>
-        <div class="ap-signal" style="border-bottom:none">
-          <div class="ap-sig-dot" style="background:#5e5ce6"></div>
-          <div class="ap-sig-label">Health · mood log</div>
-          <div class="ap-sig-bar-w"><div class="ap-sig-bar"><div class="ap-sig-fill" style="width:35%;background:#5e5ce6"></div></div></div>
-          <div class="ap-sig-val">Slightly low</div>
-        </div>
-      </div>
-      <div class="ap-section-label">Skip pattern vs HRV</div>
-      <div class="ap-card">
-        <div class="ap-chart-area">
-          <canvas id="ap-chart" role="img" aria-label="Line chart showing skip velocity and HRV moving inversely across the week">Skip velocity peaks Tuesday as HRV dips, both recover by Thursday.</canvas>
-        </div>
-        <div class="ap-chart-note">When skips rise, HRV falls. Your thumb and your body agree.</div>
-      </div>
-      <div class="ap-section-label">What your Listen State recommends</div>
-      <div class="ap-mindful-card">
-        <div class="ap-m-icon"><svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 008 20c9 0 11.4-12.76 11.4-12.76L17 8z"/></svg></div>
-        <div>
-          <div class="ap-m-title">Mindfulness is ready</div>
-          <div class="ap-m-sub">Your Watch noticed the same moment your music did. A 2-min Reflect session is queued. No app switch needed.</div>
-          <button class="ap-m-btn">Start Reflect</button>
-        </div>
-      </div>
-      <div class="ap-privacy">
-        <div class="ap-priv-icon"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div>
-        <div class="ap-priv-text"><span class="ap-priv-bold">Processed on device. No handoff.</span> Apple Music, Watch, and Health stay in one ecosystem. No partnership API. No data crosses company lines. No seam.</div>
-      </div>
-    </div>
-  </div>
+  <div class="article-body">
 
-  <!-- COMPARE PANEL -->
-  <div class="si-panel" id="panel-compare">
-    <div class="cmp-grid">
-      <div class="cmp-col">
-        <div class="cmp-col-title" style="color:#1DB954">Spotify + Calm</div>
-        <div class="cmp-item"><div class="cmp-dot" style="background:#fc3c44"></div>Skip data detected inside Spotify</div>
-        <div class="cmp-item"><div class="cmp-dot" style="background:#fc3c44"></div>Partnership API passes signal to Calm</div>
-        <div class="cmp-item"><div class="cmp-dot" style="background:#fc3c44"></div>User leaves Spotify, enters Calm</div>
-        <div class="cmp-item"><div class="cmp-dot" style="background:#fc3c44"></div>Skip data only — no body signals</div>
-        <div class="cmp-item"><div class="cmp-dot" style="background:#fc3c44"></div>Two privacy policies, one experience</div>
-        <div class="cmp-item"><div class="cmp-dot" style="background:#1DB954"></div>Works across all devices and platforms</div>
-      </div>
-      <div class="cmp-col">
-        <div class="cmp-col-title" style="color:#0a84ff">Apple Listen State</div>
-        <div class="cmp-item"><div class="cmp-dot" style="background:#0a84ff"></div>Skip data from Apple Music</div>
-        <div class="cmp-item"><div class="cmp-dot" style="background:#0a84ff"></div>HRV from Apple Watch</div>
-        <div class="cmp-item"><div class="cmp-dot" style="background:#0a84ff"></div>Mood log from Health</div>
-        <div class="cmp-item"><div class="cmp-dot" style="background:#0a84ff"></div>All three triangulated natively</div>
-        <div class="cmp-item"><div class="cmp-dot" style="background:#0a84ff"></div>One privacy policy, processed on device</div>
-        <div class="cmp-item"><div class="cmp-dot" style="background:#fc3c44"></div>Requires iPhone + Watch ecosystem</div>
-      </div>
-    </div>
-    <div class="verdict-box">
-      <strong>The seam is not a flaw — it's a strategic reality.</strong> Spotify's partnership model can reach a good experience. It requires negotiation, API design, privacy agreements, and two UX languages side by side. Apple's path requires one product decision. The idea is identical. The infrastructure underneath is not.
-    </div>
-  </div>
+    <h2>The same idea. The distance between them.</h2>
 
+    <p>This is what makes the comparison interesting. The feature concept is identical. The implementation reveals everything about where each company sits architecturally, and what kind of effort it takes to close the gap.</p>
+
+    <p>For Spotify, completing the wellness loop is a business development problem as much as an engineering one. You need the right partner, the right data agreement, the right UX handoff, and ongoing alignment between two companies. It can be done. But the seam will always be visible, because the infrastructure was never designed to be seamless.</p>
+
+    <p>For Apple, it's a product decision. One sprint to wire three existing data streams through a new Health card. The privacy story writes itself because nothing leaves the device. The hard part isn't building it. It's deciding to.</p>
+
+    <h2>Where this goes from here</h2>
+
+    <p>The Skip Report as a weekly retrospective is the easy version of this idea. The more interesting territory is real-time. If your skip velocity at 11pm on a Tuesday is a recognisable signature (fast exits from upbeat tracks, landing on slower songs), the system could eventually learn to shift the queue before you have to skip at all. Not reactive. Proactive.</p>
+
+    <p>The longitudinal view is where it gets most interesting. Six months of converging skip data, HRV patterns, and mood logs starts to look less like a product feature and more like genuine behavioural health data, the kind a user could choose to share with a clinician or coach. Not a diagnosis. A conversation starter that most people don't currently have the data to have.</p>
+
+    <p>The line that has to hold is consent and transparency. Users need to understand what's being read, choose whether to share it, and be able to delete it. Apple's privacy positioning is exactly right for this. Spotify's challenge is making a partnership model feel as trustworthy as a native one.</p>
+
+    <div class="principle-box">
+      <div class="principle-label">The design principle</div>
+      <p>Spotify is trying to hear what you feel. Apple doesn't need to. Your body, your thumb, and your mood log are already talking. They just haven't been introduced yet. The most powerful wellness feature either company could ship isn't a new sensor or a new app. It's a bridge between things that already exist.</p>
+    </div>
+
+  </div>
 </div>
 
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="footer-row">
+    <div>
+      <div class="footer-label">About this series</div>
+      <p class="footer-text">A running portfolio of original marketing and product concepts, reimagining features, rethinking strategies, and finding the gaps that existing brands haven't named yet.</p>
+    </div>
+    <div class="footer-next">
+      <div class="footer-label">Next concept</div>
+      <a href="../duolingo/">Duolingo: The Streak Funeral →</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>Anushree Jagdish · Thinking</span>
+    <span>Concept No. 01 · Skip Intelligence · 2026</span>
+  </div>
+</footer>
+
 <script>
-function sw(id, el, activeClass) {
-  document.querySelectorAll('.si-tab').forEach(t => t.classList.remove('sp-active','ap-active','cmp-active'));
-  document.querySelectorAll('.si-panel').forEach(p => p.classList.remove('active'));
-  el.classList.add(activeClass);
-  document.getElementById('panel-' + id).classList.add('active');
-}
+  function sw(id, el, activeClass) {
+    document.querySelectorAll('.si-tab').forEach(t => t.classList.remove('sp-active','ap-active','cmp-active'));
+    document.querySelectorAll('.si-panel').forEach(p => p.classList.remove('active'));
+    el.classList.add(activeClass);
+    document.getElementById('panel-' + id).classList.add('active');
+  }
 
-// Spotify chart
-const hrs = Array.from({length:24},(_,i)=>i===0?'12a':i<12?i+'a':i===12?'12p':(i-12)+'p');
-const hd = [3,2,1,1,2,6,20,32,22,16,14,26,28,18,15,13,17,18,15,19,30,38,29,17];
-new Chart(document.getElementById('sp-chart'),{
-  type:'bar',
-  data:{labels:hrs,datasets:[{data:hd,backgroundColor:hd.map(v=>v>=28?'#1DB954':v>=18?'rgba(29,185,84,.4)':'#282828'),borderRadius:3,borderSkipped:false}]},
-  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#282828',titleColor:'#fff',bodyColor:'#b3b3b3',callbacks:{label:c=>`${c.raw} skips`}}},scales:{x:{grid:{display:false},ticks:{color:'#535353',font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:7}},y:{display:false,min:0,max:44}}}
-});
+  const hrs = Array.from({length:24},(_,i)=>i===0?'12a':i<12?i+'a':i===12?'12p':(i-12)+'p');
+  const hd = [3,2,1,1,2,6,20,32,22,16,14,26,28,18,15,13,17,18,15,19,30,38,29,17];
+  new Chart(document.getElementById('sp-chart'),{
+    type:'bar',
+    data:{labels:hrs,datasets:[{data:hd,backgroundColor:hd.map(v=>v>=28?'#1DB954':v>=18?'rgba(29,185,84,.4)':'#282828'),borderRadius:3,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#282828',titleColor:'#fff',bodyColor:'#b3b3b3',callbacks:{label:c=>`${c.raw} skips`}}},scales:{x:{grid:{display:false},ticks:{color:'#535353',font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:7}},y:{display:false,min:0,max:44}}}
+  });
 
-// Apple chart
-const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-const skipW=[42,91,68,38,30,22,18];
-const hrv=[52,34,41,55,62,68,71];
-new Chart(document.getElementById('ap-chart'),{
-  type:'line',
-  data:{labels:days,datasets:[
-    {label:'Skips',data:skipW,borderColor:'#fc3c44',borderWidth:2,pointRadius:3,pointBackgroundColor:'#fc3c44',tension:.4,fill:false,yAxisID:'y'},
-    {label:'HRV',data:hrv,borderColor:'#0a84ff',borderWidth:2,pointRadius:3,pointBackgroundColor:'#0a84ff',tension:.4,fill:false,borderDash:[4,3],yAxisID:'y2'}
-  ]},
-  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#fff',titleColor:'#000',bodyColor:'#8e8e93',borderColor:'#e5e5ea',borderWidth:1}},scales:{x:{grid:{display:false},ticks:{color:'#8e8e93',font:{size:11}}},y:{display:false},y2:{display:false}}}
-});
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  new Chart(document.getElementById('ap-chart'),{
+    type:'line',
+    data:{labels:days,datasets:[
+      {label:'Skips',data:[42,91,68,38,30,22,18],borderColor:'#fc3c44',borderWidth:2,pointRadius:3,pointBackgroundColor:'#fc3c44',tension:.4,fill:false,yAxisID:'y'},
+      {label:'HRV',data:[52,34,41,55,62,68,71],borderColor:'#0a84ff',borderWidth:2,pointRadius:3,pointBackgroundColor:'#0a84ff',tension:.4,fill:false,borderDash:[4,3],yAxisID:'y2'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#fff',titleColor:'#000',bodyColor:'#8e8e93',borderColor:'#e5e5ea',borderWidth:1}},scales:{x:{grid:{display:false},ticks:{color:'#8e8e93',font:{size:11}}},y:{display:false},y2:{display:false}}}
+  });
 </script>
+
 </body>
 </html>
