@@ -2,11 +2,14 @@ name: Update README with Articles
 
 on:
   push:
-    branches: [main]       # runs every time you push
-  workflow_dispatch:        # lets you trigger it manually from GitHub
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
-  contents: write           # allows the action to commit back to your repo
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true   # fixes the Node.js warning
 
 jobs:
   update-readme:
@@ -16,7 +19,7 @@ jobs:
       - name: Checkout repo (full history)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0    # needed to get accurate commit dates per file
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -26,10 +29,14 @@ jobs:
       - name: Run article scanner
         run: python scripts/update_readme.py
 
-      - name: Commit and push if README changed
+      - name: Commit and push only if README changed
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           git add README.md
-          git diff --staged --quiet || git commit -m "📝 Auto-update article list"
-          git push
+          if ! git diff --staged --quiet; then
+            git commit -m "📝 Auto-update article list"
+            git push
+          else
+            echo "No changes to README — skipping commit."
+          fi
