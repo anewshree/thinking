@@ -21,7 +21,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Python runs inline — no separate file needed, no setup-python needed
       - name: Scan articles and update README
         shell: python3 {0}
         run: |
@@ -31,20 +30,66 @@ jobs:
           README_PATH  = "README.md"
           START_MARKER = "<!-- ARTICLES_START -->"
           END_MARKER   = "<!-- ARTICLES_END -->"
-          SKIP_DIRS    = {".git", ".github", "scripts", "assets", "images"}
-          SKIP_FILES   = {"README.md", "LICENSE.md", "CONTRIBUTING.md"}
 
-          def get_title(filepath):
+          # Folders to never scan
+          SKIP_DIRS  = {".git", ".github", "scripts", "assets", "images", "node_modules"}
+
+          # Files to skip even if found
+          SKIP_FILES = {"README.md", "LICENSE.md", "CONTRIBUTING.md"}
+
+          # File types to treat as articles
+          ARTICLE_EXTS = {".html", ".md"}
+
+
+          def get_html_title(filepath):
+              """Extract title from <title> tag, then <h1>, then filename."""
+              try:
+                  with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                      content = f.read()
+                  # Try <title> first
+                  m = re.search(r"<title[^>]*>(.*?)</title>", content, re.IGNORECASE | re.DOTALL)
+                  if m:
+                      return re.sub(r"<[^>]+>", "", m.group(1)).strip()
+                  # Try <h1>
+                  m = re.search(r"<h1[^>]*>(.*?)</h1>", content, re.IGNORECASE | re.DOTALL)
+                  if m:
+                      return re.sub(r"<[^>]+>", "", m.group(1)).strip()
+              except Exception as e:
+                  print(f"  Could not read {filepath}: {e}")
+              return None
+
+
+          def get_md_title(filepath):
+              """Extract title from first # heading."""
               try:
                   with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
                       for line in f:
                           if line.strip().startswith("# "):
                               return line.strip()[2:].strip()
-              except:
-                  pass
-              return os.path.splitext(os.path.basename(filepath))[0].replace("-"," ").replace("_"," ").title()
+              except Exception as e:
+                  print(f"  Could not read {filepath}: {e}")
+              return None
+
+
+          def get_title(filepath):
+              ext = os.path.splitext(filepath)[1].lower()
+              title = None
+              if ext == ".html":
+                  title = get_html_title(filepath)
+              elif ext == ".md":
+                  title = get_md_title(filepath)
+              if not title:
+                  # Fallback: prettify filename or folder name
+                  name = os.path.splitext(os.path.basename(filepath))[0]
+                  if name == "index":
+                      # Use the parent folder name instead
+                      name = os.path.basename(os.path.dirname(filepath))
+                  title = name.replace("-", " ").replace("_", " ").title()
+              return title
+
 
           def get_date(filepath):
+              """Get first commit date for this file."""
               try:
                   r = subprocess.run(
                       ["git", "log", "--follow", "--format=%as", "--", filepath],
@@ -52,46 +97,81 @@ jobs:
                   lines = [l.strip() for l in r.stdout.splitlines() if l.strip()]
                   if lines:
                       return datetime.strptime(lines[-1], "%Y-%m-%d")
-              except:
-                  pass
+              except Exception as e:
+                  print(f"  Could not get date for {filepath}: {e}")
               return datetime.now()
 
+
           articles = []
+
           for root, dirs, files in os.walk("."):
-              dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith(".")]
+              # Prune skip dirs
+              dirs[:] = [
+                  d for d in dirs
+                  if d not in SKIP_DIRS and not d.startswith(".")
+              ]
+
+              # Skip root-level files (only pick up articles in subfolders)
+              rel_root = root.replace("\\", "/").lstrip("./").lstrip("/")
+              is_root  = (rel_root == "")
+
               for f in files:
-                  if not f.endswith(".md") or f in SKIP_FILES:
+                  ext = os.path.splitext(f)[1].lower()
+                  if ext not in ARTICLE_EXTS:
                       continue
+                  if f in SKIP_FILES:
+                      continue
+                  # Skip html/md files sitting at repo root
+                  if is_root:
+                      continue
+
                   raw   = os.path.join(root, f)
                   path  = raw.replace("\\", "/").lstrip("./").lstrip("/")
                   parts = path.split("/")
                   folder = "/" + parts[0] if len(parts) > 1 else "/root"
-                  title  = get_title(raw)
-                  date   = get_date(raw)
+
+                  title = get_title(raw)
+                  date  = get_date(raw)
+
                   print(f"  + {title} | {folder} | {date.strftime('%b %Y')}")
-                  articles.append({"title": title, "date": date, "folder": folder, "path": path})
+                  articles.append({
+                      "title":  title,
+                      "date":   date,
+                      "folder": folder,
+                      "path":   path,
+                  })
 
           articles.sort(key=lambda a: a["date"], reverse=True)
           print(f"Total: {len(articles)} article(s) found.")
 
+          # Build table
           if articles:
               rows = ["| Article | Folder | Published |", "|---------|--------|-----------|"]
               for a in articles:
-                  rows.append(f"| [{a['title']}]({a['path']}) | `{a['folder']}` | {a['date'].strftime('%b %Y')} |")
+                  rows.append(
+                      f"| [{a['title']}]({a['path']}) "
+                      f"| `{a['folder']}` "
+                      f"| {a['date'].strftime('%b %Y')} |"
+                  )
               rows.append("")
-              rows.append(f"_Last updated: {datetime.now().strftime('%d %b %Y')} · {len(articles)} article(s)_")
+              rows.append(
+                  f"_Last updated: {datetime.now().strftime('%d %b %Y')}"
+                  f" · {len(articles)} article(s)_"
+              )
               table = "\n".join(rows)
           else:
               table = "_No articles yet. Watch this space._"
 
           new_block = f"{START_MARKER}\n{table}\n{END_MARKER}"
 
+          # Read README
           if os.path.exists(README_PATH):
               with open(README_PATH, "r", encoding="utf-8") as fh:
                   content = fh.read()
           else:
               content = "# thinking\n\n"
 
+          # Splice in new block
           if START_MARKER in content and END_MARKER in content:
               content = re.sub(
                   re.escape(START_MARKER) + r".*?" + re.escape(END_MARKER),
